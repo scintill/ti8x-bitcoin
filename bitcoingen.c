@@ -1,9 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "miracl.h"
 
-#define CURVE_BITS 256
+#include "miracl.h"
+#include "rmd160.h"
+
 #define WORDS 4
 
 // from romaker with secp256k1.ecs
@@ -14,24 +15,25 @@ static const mr_small rom[]={
 0x9c47d08ffb10d4b8,0xfd17b448a6855419,0x5da4fbfc0e1108a8,0x483ada7726a3c465};
 
 void otbase58num(miracl *mip, unsigned int num_bytes, char lead, big num, char trail, FILE *fp);
+void otbitcoinaddress(miracl *mip, char compflag, big x, FILE *fp);
 
 int main()
 {
-    int ep;
-    epoint *g,*w;
-    big a,b,p,q,x,y,d;
-    long seed;
+	int ep;
+	epoint *g,*w;
+	big a,b,p,q,x,y,d;
+	long seed;
 	int promptr;
 	miracl *mip;
 
-    mip = mirsys(38,256); // 38 bytes = 32 key + 1 lead + 1 trail + 4 checksum
-    p=mirvar(0);
-    a=mirvar(0);
-    b=mirvar(7);
-    q=mirvar(0);
-    x=mirvar(0);
-    y=mirvar(0);
-    d=mirvar(0);
+	mip = mirsys(38,256); // 38 bytes = 32 key + 1 lead + 1 trail + 4 checksum
+	p=mirvar(0);
+	a=mirvar(0);
+	b=mirvar(7);
+	q=mirvar(0);
+	x=mirvar(0);
+	y=mirvar(0);
+	d=mirvar(0);
 
 	promptr = 0;
 	init_big_from_rom(p,WORDS,rom,WORDS*4,&promptr);
@@ -40,38 +42,37 @@ int main()
 	init_big_from_rom(y,WORDS,rom,WORDS*4,&promptr);
 
 	// randomise
-    printf("Enter 9 digit random number seed  = ");
-    scanf("%ld",&seed);
-    getchar();
-    irand(seed);
+	printf("Enter 9 digit random number seed  = ");
+	scanf("%ld",&seed);
+	getchar();
+	irand(seed);
 
-    ecurve_init(a,b,p,MR_PROJECTIVE);  /* initialise curve */
+	ecurve_init(a,b,p,MR_PROJECTIVE);  /* initialise curve */
 
-    g=epoint_init();
-    w=epoint_init();
+	g=epoint_init();
+	w=epoint_init();
 
-    if (!epoint_set(x,y,0,g)) /* initialise point of order q */
-    {
-        printf("1. Problem - point (x,y) is not on the curve\n");
-        exit(0);
-    }
+	if (!epoint_set(x,y,0,g)) /* initialise point of order q */
+	{
+		printf("1. Problem - point (x,y) is not on the curve\n");
+		exit(0);
+	}
 
-    ecurve_mult(q,g,w);
-    if (!point_at_infinity(w))
-    {
-        printf("2. Problem - point (x,y) is not of order q\n");
-        exit(0);
-    }
+	ecurve_mult(q,g,w);
+	if (!point_at_infinity(w))
+	{
+		printf("2. Problem - point (x,y) is not of order q\n");
+		exit(0);
+	}
 
 	// generate public/private keys
-    bigrand(q,d);
-    ecurve_mult(d,g,g);
+	bigrand(q,d);
+	ecurve_mult(d,g,g);
 
-    ep=epoint_get(g,x,x); /* compress point */
+	ep=epoint_get(g,x,x); /* compress point */
 
-    printf("public key = %02x",2+ep);
-	mip->IOBASE=16;
-	cotnum(x, stdout);
+	printf("public address = ");
+	otbitcoinaddress(mip, ep, x, stdout);
 
 	printf("private WIF = ");
 	otbase58num(mip, 32, '\x80', d, '\x01', stdout);
@@ -89,7 +90,7 @@ int main()
 
 	mirexit();
 
-    return 0;
+	return 0;
 }
 
 void otbase58num(miracl *mip, unsigned int num_bytes, char lead, big num, char trail, FILE *fp) {
@@ -155,4 +156,47 @@ void otbase58num(miracl *mip, unsigned int num_bytes, char lead, big num, char t
 		}
 	}
 	fputc('\n', fp);
+}
+
+void otbitcoinaddress(miracl *mip, char compflag, big x, FILE *fp) {
+	char buff[33];
+	sha256 s256;
+	unsigned char sha256[32];
+
+	mr_unsign32 MDbuf[5];
+	unsigned int i;
+	char rmd160[20];
+
+	big binnum;
+
+	// prepend flag
+	buff[0] = '\x02' + compflag;
+	big_to_bytes(32, x, &buff[1], TRUE);
+
+	// sha256
+	shs256_init(&s256);
+	for (i = 0; i < sizeof(buff); i++) {
+		shs256_process(&s256, buff[i]);
+	}
+	shs256_hash(&s256, (char*)sha256);
+
+	// ripemd160
+	MDinit(MDbuf);
+	MDfinish(MDbuf, sha256, 32, 0);
+	for (i = 0; i < sizeof(rmd160); i += 4) {
+		rmd160[i]   =  MDbuf[i>>2];         /* implicit cast to byte  */
+		rmd160[i+1] = (MDbuf[i>>2] >>  8);  /*  extracts the 8 least  */
+		rmd160[i+2] = (MDbuf[i>>2] >> 16);  /*  significant bits. */
+		rmd160[i+3] = (MDbuf[i>>2] >> 24);
+	}
+
+	// bignum
+	binnum = mirvar(0);
+	bytes_to_big(sizeof(rmd160), rmd160, binnum);
+
+	// base58
+	otbase58num(mip, sizeof(rmd160), '\x00', binnum, 0, fp);
+
+	// cleanup
+	mirkill(binnum);
 }
