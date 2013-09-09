@@ -6,13 +6,14 @@
 #define CURVE_BITS 256
 #define WORDS 4
 
+// from romaker with secp256k1.ecs
 static const mr_small rom[]={
 0xfffffffefffffc2f,0xffffffffffffffff,0xffffffffffffffff,0xffffffffffffffff,
 0xbfd25e8cd0364141,0xbaaedce6af48a03b,0xfffffffffffffffe,0xffffffffffffffff,
 0x59f2815b16f81798,0x29bfcdb2dce28d9,0x55a06295ce870b07,0x79be667ef9dcbbac,
 0x9c47d08ffb10d4b8,0xfd17b448a6855419,0x5da4fbfc0e1108a8,0x483ada7726a3c465};
 
-void otbase58num(miracl *mip, flash num, FILE *fp);
+void otbase58num(miracl *mip, unsigned int num_bytes, char lead, big num, char trail, FILE *fp);
 
 int main()
 {
@@ -23,7 +24,7 @@ int main()
 	int promptr;
 	miracl *mip;
 
-    mip = mirsys(CURVE_BITS/4,16);  /* Use Hex internally */
+    mip = mirsys(38,256); // 38 bytes = 32 key + 1 lead + 1 trail + 4 checksum
     p=mirvar(0);
     a=mirvar(0);
     b=mirvar(7);
@@ -38,7 +39,7 @@ int main()
 	init_big_from_rom(x,WORDS,rom,WORDS*4,&promptr);
 	init_big_from_rom(y,WORDS,rom,WORDS*4,&promptr);
 
-/* randomise */
+	// randomise
     printf("Enter 9 digit random number seed  = ");
     scanf("%ld",&seed);
     getchar();
@@ -62,42 +63,96 @@ int main()
         exit(0);
     }
 
-/* generate public/private keys */
+	// generate public/private keys
     bigrand(q,d);
     ecurve_mult(d,g,g);
 
     ep=epoint_get(g,x,x); /* compress point */
 
-    printf("public key = %d ",ep);
-    otbase58num(mip,x,stdout);
+    printf("public key = %02x",2+ep);
+	mip->IOBASE=16;
+	cotnum(x, stdout);
 
-	printf("private key = ");
-	otbase58num(mip,d,stdout);
+	printf("private WIF = ");
+	otbase58num(mip, 32, '\x80', d, '\x01', stdout);
+
+	// free and scrub
+	mirkill(d);
+	mirkill(x);
+	mirkill(y);
+	mirkill(p);
+	mirkill(a);
+	mirkill(b);
+	mirkill(q);
+	epoint_free(g);
+	epoint_free(w);
+
+	mirexit();
 
     return 0;
 }
 
-void otbase58num(miracl *mip, flash num, FILE *fp) {
-	int b;
+void otbase58num(miracl *mip, unsigned int num_bytes, char lead, big num, char trail, FILE *fp) {
+	int digits, i, j;
+	char *buff;
+	int buffsize;
+	sha256 s256;
+	char hash[32];
+	big binnum;
+
 	char *pchr;
-	int digits, i;
 	char *miraclAlpha = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuv";
 	char *bitcoinAlpha= "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
-	// remember current base, set to 58
-	b = mip->IOBASE;
-	mip->IOBASE=58;
+	// make temp buffer: lead+num+trail+(checksum)
+	buffsize = 1 + num_bytes + (trail ? 1:0) + 4;
+	buff = malloc(buffsize);
+	buff[0] = lead;
+	i = 1 + big_to_bytes(num_bytes, num, &buff[1], TRUE);
 
-	// output to temp string, make base58 alphabet translations, then output to file
-	digits = cotstr(num, mip->IOBUFF);
-	for (i = 0; i < digits; i++) {
-		pchr = strchr(miraclAlpha, mip->IOBUFF[i]);
+	if (trail) {
+		buff[i++] = trail;
+	}
+
+	// double-sha256 buff[0..(i-1)] for checksum
+	shs256_init(&s256);
+	for (j = 0; j < i; j++) {
+		shs256_process(&s256, buff[j]);
+	}
+	shs256_hash(&s256, hash);
+
+	shs256_init(&s256);
+	for (j = 0; j < sizeof(hash); j++) {
+		shs256_process(&s256, hash[j]);
+	}
+	shs256_hash(&s256, hash);
+
+	// append checksum
+	buff[i++] = hash[0];
+	buff[i++] = hash[1];
+	buff[i++] = hash[2];
+	buff[i++] = hash[3];
+
+	// put result into bignum so we can base58 it
+	binnum = mirvar(0);
+	bytes_to_big(i, buff, binnum);
+
+	// front-pad with "zero" digits
+	for (j = 0; buff[j] == 0 && j < i; j++) {
+		fputc(bitcoinAlpha[0], fp);
+	}
+
+	free(buff);
+
+	// output to temp string, make base58 alphabet translations, output to file
+	mip->IOBASE=58;
+	digits = cotstr(binnum, mip->IOBUFF);
+	mirkill(binnum);
+	for (j = 0; j < digits; j++) {
+		pchr = strchr(miraclAlpha, mip->IOBUFF[j]);
 		if (pchr >= miraclAlpha) { // should always be true..
 			fputc(bitcoinAlpha[pchr - miraclAlpha], fp);
 		}
 	}
 	fputc('\n', fp);
-
-	// restore base
-	mip->IOBASE = b;
 }
