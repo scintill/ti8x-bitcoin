@@ -1,2 +1,14 @@
 bitcoingen
 rmd160.o
+bitcoingen.asm
+bitcoingen.ihx
+bitcoingen.lk
+bitcoingen.lst
+bitcoingen.map
+bitcoingen.noi
+bitcoingen.rel
+bitcoingen.sym
+rmd160.asm
+rmd160.lst
+rmd160.rel
+rmd160.sym

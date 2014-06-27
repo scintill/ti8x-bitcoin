@@ -1,0 +1,29 @@
+MRBUILD = MIRACL/build.ti
+CC = sdcc -mz80 --std-c99
+#TODO optimization flags?
+AR = sdcclib
+
+bitcoingen.ihx: bitcoingen.rel rmd160.rel $(MRBUILD)/miracl.lib
+	$(CC) $^ -I $(MRBUILD) -o $@
+
+bitcoingen.rel: bitcoingen.c rmd160.rel
+	$(CC) -c $< -I $(MRBUILD) -o $@
+
+rmd160.rel: rmd160.c rmd160.h
+	$(CC) -c $< -I $(MRBUILD) -o $@
+
+
+## MIRACL mini-makefile
+
+$(MRBUILD)/mirdef.h: mirdef.ti.h
+	rm -rf $(MRBUILD)
+	mkdir $(MRBUILD)
+	cp MIRACL/include/*.h $(MRBUILD)
+	cp mirdef.ti.h $(MRBUILD)/mirdef.h
+
+$(MRBUILD)/miracl.lib: $(MRBUILD)/mirdef.h $(MRBUILD)/mrcore.rel $(MRBUILD)/mrarth0.rel $(MRBUILD)/mrarth1.rel $(MRBUILD)/mrarth2.rel $(MRBUILD)/mrarth3.rel $(MRBUILD)/mrbits.rel $(MRBUILD)/mrcurve.rel $(MRBUILD)/mrmonty.rel $(MRBUILD)/mrshs256.rel $(MRBUILD)/mrjack.rel $(MRBUILD)/mrxgcd.rel $(MRBUILD)/mrsroot.rel $(MRBUILD)/mrio1.rel $(MRBUILD)/mrio2.rel $(MRBUILD)/mrlucas.rel
+	rm -f $@
+	$(AR) $@ $^
+
+$(MRBUILD)/%.rel: MIRACL/source/%.c
+	$(CC) -c $< -I $(MRBUILD) -o $@

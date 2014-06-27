@@ -6,14 +6,14 @@
 #include "rmd160.h"
 
 // from romaker with secp256k1.ecs
-static const mr_unsign64 rom[]={
-0xfffffffefffffc2f,0xffffffffffffffff,0xffffffffffffffff,0xffffffffffffffff,
-0xbfd25e8cd0364141,0xbaaedce6af48a03b,0xfffffffffffffffe,0xffffffffffffffff,
-0x59f2815b16f81798,0x29bfcdb2dce28d9,0x55a06295ce870b07,0x79be667ef9dcbbac,
-0x9c47d08ffb10d4b8,0xfd17b448a6855419,0x5da4fbfc0e1108a8,0x483ada7726a3c465};
+static const mr_small rom[]={
+0x2f,0xfc,0xff,0xff,0xfe,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
+0x41,0x41,0x36,0xd0,0x8c,0x5e,0xd2,0xbf,0x3b,0xa0,0x48,0xaf,0xe6,0xdc,0xae,0xba,0xfe,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
+0x98,0x17,0xf8,0x16,0x5b,0x81,0xf2,0x59,0xd9,0x28,0xce,0x2d,0xdb,0xfc,0x9b,0x2,0x7,0xb,0x87,0xce,0x95,0x62,0xa0,0x55,0xac,0xbb,0xdc,0xf9,0x7e,0x66,0xbe,0x79,
+0xb8,0xd4,0x10,0xfb,0x8f,0xd0,0x47,0x9c,0x19,0x54,0x85,0xa6,0x48,0xb4,0x17,0xfd,0xa8,0x8,0x11,0xe,0xfc,0xfb,0xa4,0x5d,0x65,0xc4,0xa3,0x26,0x77,0xda,0x3a,0x48};
 
-void otbase58num(miracl *mip, unsigned int num_bytes, char lead, big num, char trail, FILE *fp);
-void otbitcoinaddress(miracl *mip, char compflag, big x, FILE *fp);
+void otbase58num(miracl *mip, unsigned int num_bytes, char lead, big num, char trail);
+void otbitcoinaddress(miracl *mip, char compflag, big x);
 
 int main()
 {
@@ -49,14 +49,16 @@ int main()
 	if (!epoint_set(x, y, 0, g)) // initialise point of order q
 	{
 		printf("1. Problem - point (x,y) is not on the curve\n");
-		exit(0);
+		mirexit();
+		return 1;
 	}
 
 	ecurve_mult(q, g, w);
 	if (!point_at_infinity(w))
 	{
 		printf("2. Problem - point (x,y) is not of order q\n");
-		exit(0);
+		mirexit();
+		return 2;
 	}
 
 	// generate public/private keys
@@ -67,10 +69,10 @@ int main()
 	lsby = epoint_get(g, x, x); // compress point
 
 	printf("public address = ");
-	otbitcoinaddress(mip, lsby, x, stdout);
+	otbitcoinaddress(mip, lsby, x);
 
 	printf("private WIF = ");
-	otbase58num(mip, 32, '\x80', d, '\x01', stdout);
+	otbase58num(mip, 32, '\x80', d, '\x01');
 
 	// free and scrub
 	memset(stallocbn, 0, sizeof(stallocbn));
@@ -81,7 +83,7 @@ int main()
 	return 0;
 }
 
-void otbase58num(miracl *mip, unsigned int num_bytes, char lead, big num, char trail, FILE *fp) {
+void otbase58num(miracl *mip, unsigned int num_bytes, char lead, big num, char trail) {
 	int digits, i, j;
 	char buff[1 + 32 + 1 + 4]; // lead+num+trail+(checksum)
 	sha256 s256;
@@ -125,7 +127,7 @@ void otbase58num(miracl *mip, unsigned int num_bytes, char lead, big num, char t
 
 	// front-pad with "zero" digits
 	for (j = 0; buff[j] == 0 && j < i; j++) {
-		fputc(bitcoinAlpha[0], fp);
+		fputc(bitcoinAlpha[0], stdout);
 	}
 
 	// output to temp string, make base58 alphabet translations, output to file
@@ -135,13 +137,13 @@ void otbase58num(miracl *mip, unsigned int num_bytes, char lead, big num, char t
 	for (j = 0; j < digits; j++) {
 		pchr = strchr(miraclAlpha, mip->IOBUFF[j]);
 		if (pchr >= miraclAlpha) { // should always be true..
-			fputc(bitcoinAlpha[pchr - miraclAlpha], fp);
+			fputc(bitcoinAlpha[pchr - miraclAlpha], stdout);
 		}
 	}
-	fputc('\n', fp);
+	fputc('\n', stdout);
 }
 
-void otbitcoinaddress(miracl *mip, char compflag, big x, FILE *fp) {
+void otbitcoinaddress(miracl *mip, char compflag, big x) {
 	char buff[33];
 	sha256 s256;
 	unsigned char sha256[32];
@@ -179,7 +181,7 @@ void otbitcoinaddress(miracl *mip, char compflag, big x, FILE *fp) {
 	bytes_to_big(sizeof(rmd160), rmd160, binnum);
 
 	// base58
-	otbase58num(mip, sizeof(rmd160), '\x00', binnum, 0, fp);
+	otbase58num(mip, sizeof(rmd160), '\x00', binnum, 0);
 
 	// cleanup
 	memset(stalloc, 0, sizeof(stalloc));
