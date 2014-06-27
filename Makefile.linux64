@@ -1,15 +1,20 @@
+CC = gcc -m64 -O2 -Wall -I MIRACL/build.linux64 -std=c99
+
 bitcoingen: bitcoingen.c rmd160.o MIRACL/build.linux64/mirdef.h
-	gcc -m64 -O2 -Wall -I MIRACL/build.linux64 bitcoingen.c rmd160.o MIRACL/build.linux64/miracl.a -o bitcoingen
+	$(CC) bitcoingen.c rmd160.o MIRACL/build.linux64/miracl.a -o bitcoingen
 
 rmd160.o: rmd160.c rmd160.h MIRACL/build.linux64/mirdef.h
-	gcc -m64 -O2 -Wall -I MIRACL/build.linux64 rmd160.c -c -o rmd160.o
+	$(CC) rmd160.c -c -o rmd160.o
 
 valgrind: bitcoingen
 	valgrind --leak-check=full --show-reachable=yes --gen-suppressions=yes ./bitcoingen
 	valgrind --tool=exp-sgcheck ./bitcoingen
 
-MIRACL/build.linux64/mirdef.h:
+MIRACL/build.linux64/mirdef.h: mirdef.x86_64.8bit.h
 	rm -rf MIRACL/build.linux64
 	mkdir MIRACL/build.linux64
 	find MIRACL -type f | xargs -I X cp X MIRACL/build.linux64
+	cp mirdef.x86_64.8bit.h MIRACL/build.linux64/mirdef.h64
 	sh -c 'cd MIRACL/build.linux64 && . ./linux64'
+# the cpp stuff might fail building, but we don't need it. just re-run make
+# TODO strip down the MIRACL build script
