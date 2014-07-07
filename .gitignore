@@ -1,6 +1,10 @@
 bitcoingen
+bitcoingen.o
 rmd160.o
+
+bitcoingen.8xp
 bitcoingen.asm
+bitcoingen.bin
 bitcoingen.ihx
 bitcoingen.lk
 bitcoingen.lst
@@ -12,3 +16,10 @@ rmd160.asm
 rmd160.lst
 rmd160.rel
 rmd160.sym
+tios.asm
+tios_crt0.asm
+tios_crt0.lst
+tios_crt0.rel
+tios.lst
+tios.rel
+tios.sym

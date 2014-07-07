@@ -1,0 +1,57 @@
+MRBUILD = MIRACL/build.ti.sdcc
+MROBJS = $(MRBUILD)/mrcore.rel $(MRBUILD)/mrarth0.rel $(MRBUILD)/mrarth1.rel $(MRBUILD)/mrarth2.rel $(MRBUILD)/mrarth3.rel $(MRBUILD)/mrbits.rel $(MRBUILD)/mrcurve.rel $(MRBUILD)/mrmonty.rel $(MRBUILD)/mrshs256.rel $(MRBUILD)/mrjack.rel $(MRBUILD)/mrxgcd.rel $(MRBUILD)/mrsroot.rel $(MRBUILD)/mrio1.rel $(MRBUILD)/mrio2.rel $(MRBUILD)/mrlucas.rel
+CC = sdcc -mz80 --std-c99 --reserve-regs-iy -DTI8X
+#TODO optimization flags?
+AS = sdasz80
+
+bitcoingen.8xp: bitcoingen.ihx
+	sdobjcopy -I ihex $< $@
+	python ./binpac8x.py -O T bitcoingen.bin $@
+
+bitcoingen.ihx: bitcoingen.rel rmd160.rel tios.rel tios_crt0.rel $(MROBJS)
+	$(CC) --verbose -V --no-std-crt0 --code-loc 0x9D9B --code-size 24000 --data-loc 0 bitcoingen.rel rmd160.rel tios.rel tios_crt0.rel $(MROBJS) -I $(MRBUILD) -o $@
+
+bitcoingen.rel: bitcoingen.c rmd160.rel tiglue.h $(MRBUILD)/mirdef.h
+	$(CC) -c $< -I $(MRBUILD) -o $@
+
+rmd160.rel: rmd160.c rmd160.h $(MRBUILD)/mirdef.h
+	$(CC) -c $< -I $(MRBUILD) -o $@
+
+tios.rel: tios.c
+	$(CC) -c $< -o $@
+
+tios_crt0.rel: tios_crt0.s
+	$(AS) -p -g -o $@ $<
+
+
+
+
+clean:
+	/bin/bash -c "rm -f bitcoingen.{8xp,ihx,lk,bin,map,noi} {bitcoingen,rmd160,tios,tios_crt0}.{rel,asm,lst,sym} tios.sym"
+
+superclean: clean
+	rm -rf $(MRBUILD)
+
+sizechk: bitcoingen.otmp rmd160.otmp tios.otmp tios_crt0.otmp $(MROBJS:.rel=.otmp)
+	@du -bsc $^
+	@rm -f $^
+
+
+# standard GNU objcopy works, but it's better to not depend on it if the SDCC version works
+%.otmp: %.rel
+	$(CC) $< -o $@ 2> /dev/null || /bin/true
+	sdobjcopy -I ihex $@ $@
+	@rm -f $(<:.rel=.lk)
+	@rm -f $(<:.rel=.map)
+	@rm -f $(<:.rel=.noi)
+
+
+
+$(MRBUILD)/mirdef.h: mirdef.ti.h
+	rm -rf $(MRBUILD)
+	mkdir $(MRBUILD)
+	cp MIRACL/include/*.h $(MRBUILD)
+	cp mirdef.ti.h $(MRBUILD)/mirdef.h
+
+$(MRBUILD)/%.rel: MIRACL/source/%.c $(MRBUILD)/mirdef.h
+	$(CC) -c $< -I $(MRBUILD) -o $@

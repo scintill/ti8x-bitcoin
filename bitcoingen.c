@@ -1,9 +1,14 @@
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "miracl.h"
 #include "rmd160.h"
+
+#ifdef TI8X
+#include "tiglue.h"
+#else /* TI8X */
+#include <stdio.h>
+#endif
 
 // from romaker with secp256k1.ecs
 static const mr_small rom[]={
@@ -24,6 +29,12 @@ int main()
 	miracl *mip;
 	char stallocbn[MR_BIG_RESERVE(7)] = {0};
 	char stallocep[MR_ECP_RESERVE(2)] = {0};
+
+#ifdef TI8X
+	tios_ClrLCDFull();
+	tios_HomeUp();
+#endif
+	puts("Hello..");
 
 	mip = mirsys(MR_STATIC, 0);
 	p = mirvar_mem(stallocbn, 0);
@@ -48,7 +59,7 @@ int main()
 
 	if (!epoint_set(x, y, 0, g)) // initialise point of order q
 	{
-		printf("1. Problem - point (x,y) is not on the curve\n");
+		puts("1. Problem - point (x,y) is not on the curve");
 		mirexit();
 		return 1;
 	}
@@ -56,7 +67,7 @@ int main()
 	ecurve_mult(q, g, w);
 	if (!point_at_infinity(w))
 	{
-		printf("2. Problem - point (x,y) is not of order q\n");
+		puts("2. Problem - point (x,y) is not of order q");
 		mirexit();
 		return 2;
 	}
@@ -68,10 +79,10 @@ int main()
 
 	lsby = epoint_get(g, x, x); // compress point
 
-	printf("public address = ");
+	fputs("public address = ", stdout);
 	otbitcoinaddress(mip, lsby, x);
 
-	printf("private WIF = ");
+	fputs("private WIF = ", stdout);
 	otbase58num(mip, 32, '\x80', d, '\x01');
 
 	// free and scrub
@@ -84,7 +95,7 @@ int main()
 }
 
 void otbase58num(miracl *mip, unsigned int num_bytes, char lead, big num, char trail) {
-	int digits, i, j;
+	unsigned int digits, i, j;
 	char buff[1 + 32 + 1 + 4]; // lead+num+trail+(checksum)
 	sha256 s256;
 	char hash[32];
@@ -127,20 +138,20 @@ void otbase58num(miracl *mip, unsigned int num_bytes, char lead, big num, char t
 
 	// front-pad with "zero" digits
 	for (j = 0; buff[j] == 0 && j < i; j++) {
-		fputc(bitcoinAlpha[0], stdout);
+		putchar(bitcoinAlpha[0]);
 	}
 
 	// output to temp string, make base58 alphabet translations, output to file
-	mip->IOBASE=58;
+	mip->IOBASE = 58;
 	digits = cotstr(binnum, mip->IOBUFF);
 	memset(stalloc, 0, sizeof(stalloc));
 	for (j = 0; j < digits; j++) {
 		pchr = strchr(miraclAlpha, mip->IOBUFF[j]);
 		if (pchr >= miraclAlpha) { // should always be true..
-			fputc(bitcoinAlpha[pchr - miraclAlpha], stdout);
+			putchar(bitcoinAlpha[pchr - miraclAlpha]);
 		}
 	}
-	fputc('\n', stdout);
+	putchar('\n');
 }
 
 void otbitcoinaddress(miracl *mip, char compflag, big x) {

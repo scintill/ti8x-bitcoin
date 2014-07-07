@@ -1,20 +1,38 @@
-CC = gcc -m64 -O2 -Wall -I MIRACL/build.linux64 -std=c99
+MRBUILD = MIRACL/build.linux64
+MROBJS = $(MRBUILD)/mrcore.o $(MRBUILD)/mrarth0.o $(MRBUILD)/mrarth1.o $(MRBUILD)/mrarth2.o $(MRBUILD)/mrbits.o $(MRBUILD)/mrcurve.o $(MRBUILD)/mrmonty.o $(MRBUILD)/mrshs256.o $(MRBUILD)/mrjack.o $(MRBUILD)/mrxgcd.o $(MRBUILD)/mrsroot.o $(MRBUILD)/mrio1.o $(MRBUILD)/mrio2.o $(MRBUILD)/mrlucas.o
+CC = gcc -m64 -O2 -Wall -Wextra -std=c99 -I $(MRBUILD)
+# 3PCC = 3rd party build flags (turn off warnings)
+3PCC = gcc -m64 -O2 -std=c99
 
-bitcoingen: bitcoingen.c rmd160.o MIRACL/build.linux64/mirdef.h
-	$(CC) bitcoingen.c rmd160.o MIRACL/build.linux64/miracl.a -o bitcoingen
+bitcoingen: bitcoingen.o rmd160.o $(MROBJS) .always
+	$(CC) bitcoingen.o rmd160.o $(MROBJS) -o bitcoingen
 
-rmd160.o: rmd160.c rmd160.h MIRACL/build.linux64/mirdef.h
+bitcoingen.o: bitcoingen.c $(MRBUILD)/mirdef.h
+	$(CC) bitcoingen.c -c -o bitcoingen.o
+
+rmd160.o: rmd160.c rmd160.h $(MRBUILD)/mirdef.h
 	$(CC) rmd160.c -c -o rmd160.o
 
 valgrind: bitcoingen
 	valgrind --leak-check=full --show-reachable=yes --gen-suppressions=yes ./bitcoingen
 	valgrind --tool=exp-sgcheck ./bitcoingen
 
-MIRACL/build.linux64/mirdef.h: mirdef.x86_64.8bit.h
-	rm -rf MIRACL/build.linux64
-	mkdir MIRACL/build.linux64
-	find MIRACL -type f | xargs -I X cp X MIRACL/build.linux64
-	cp mirdef.x86_64.8bit.h MIRACL/build.linux64/mirdef.h64
-	sh -c 'cd MIRACL/build.linux64 && . ./linux64'
-# the cpp stuff might fail building, but we don't need it. just re-run make
-# TODO strip down the MIRACL build script
+
+clean:
+	/bin/bash -c "rm -f bitcoingen {bitcoingen,rmd160}.o"
+
+superclean: clean
+	rm -rf $(MRBUILD)
+
+.always:
+
+
+
+$(MRBUILD)/mirdef.h: mirdef.x86_64.8bit.h
+	rm -rf $(MRBUILD)
+	mkdir $(MRBUILD)
+	cp MIRACL/include/*.h $(MRBUILD)
+	cp mirdef.x86_64.8bit.h $(MRBUILD)/mirdef.h
+
+$(MRBUILD)/%.o: MIRACL/source/%.c $(MRBUILD)/mirdef.h
+	$(3PCC) -c $< -I $(MRBUILD) -o $@
