@@ -157,12 +157,10 @@ void otbase58num(miracl *mip, unsigned int num_bytes, char lead, big num, char t
 void otbitcoinaddress(miracl *mip, char compflag, big x) {
 	char buff[33];
 	sha256 s256;
-	unsigned char sha256[32];
 	char stalloc[MR_BIG_RESERVE(1)] = {0};
 
-	mr_unsign32 MDbuf[5];
+	hash_state rmds;
 	unsigned int i;
-	char rmd160[20];
 
 	big binnum;
 
@@ -175,24 +173,19 @@ void otbitcoinaddress(miracl *mip, char compflag, big x) {
 	for (i = 0; i < sizeof(buff); i++) {
 		shs256_process(&s256, buff[i]);
 	}
-	shs256_hash(&s256, (char*)sha256);
+	shs256_hash(&s256, (char *)rmds.rmd160.buf.buf8); // store straight into rmd160 input buffer
 
 	// ripemd160
-	MDinit(MDbuf);
-	MDfinish(MDbuf, sha256, 32, 0);
-	for (i = 0; i < sizeof(rmd160); i += 4) {
-		rmd160[i]   =  MDbuf[i>>2];         // implicit cast to byte
-		rmd160[i+1] = (MDbuf[i>>2] >>  8);  //  extracts the 8 least
-		rmd160[i+2] = (MDbuf[i>>2] >> 16);  //  significant bits.
-		rmd160[i+3] = (MDbuf[i>>2] >> 24);
-	}
+	rmd160_init(&rmds);
+	rmds.rmd160.curlen = 32; // size of sha256 hash
+	rmd160_done(&rmds);
 
 	// bignum
 	binnum = mirvar_mem(stalloc, 0);
-	bytes_to_big(sizeof(rmd160), rmd160, binnum);
+	bytes_to_big(sizeof(rmds.rmd160.out), (char *)rmds.rmd160.out, binnum);
 
 	// base58
-	otbase58num(mip, sizeof(rmd160), '\x00', binnum, 0);
+	otbase58num(mip, sizeof(rmds.rmd160.out), '\x00', binnum, 0);
 
 	// cleanup
 	memset(stalloc, 0, sizeof(stalloc));

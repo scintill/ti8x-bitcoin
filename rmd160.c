@@ -1,38 +1,29 @@
-/********************************************************************\
+/* LibTomCrypt, modular cryptographic library -- Tom St Denis
  *
- *      FILE:     rmd160.c
+ * LibTomCrypt is a library that provides various cryptographic
+ * algorithms in a highly modular and flexible manner.
  *
- *      CONTENTS: A sample C-implementation of the RIPEMD-160
- *                hash-function.
- *      TARGET:   any computer with an ANSI C compiler
+ * The library is free for all purposes without any express
+ * guarantee it works.
  *
- *      AUTHOR:   Antoon Bosselaers, ESAT-COSIC
- *      DATE:     1 March 1996
- *      VERSION:  1.0
- *
- *      Copyright (c) Katholieke Universiteit Leuven
- *      1996, All Rights Reserved
- *
-\********************************************************************/
+ * Tom St Denis, tomstdenis@gmail.com, http://libtom.org
+ */
 
-/*  header files */
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include "mirdef.h" /* portable type defines */
-
-#define _IN_RMD_C /* leave dword and byte defined */
+/* Implementation of LTC_RIPEMD-160 based on the source by Antoon Bosselaers, ESAT-COSIC
+ *
+ * This source has been radically overhauled to be portable and work within
+ * the LibTomCrypt API by Tom St Denis
+ */
 #include "rmd160.h"
 
 /* helper definitions */
 
-/* ROL(x, n) cyclically rotates x over n bits to the left */
+/* ROLc(x, n) cyclically rotates x over n bits to the left */
 /* x must be of an unsigned 32 bits type and 0 <= n < 32. */
 #ifndef TI8X
 inline
 #endif
-static dword ROL(dword x, unsigned char n) {
+static mr_unsign32 ROLc(mr_unsign32 x, unsigned char n) {
 	return (((x) << (n)) | ((x) >> (32-(n))));
 }
 
@@ -48,115 +39,109 @@ static dword ROL(dword x, unsigned char n) {
 #ifndef TI8X
 inline
 #endif
-static void FF(dword *pa, dword b, dword *pc, dword d, dword e, dword x, unsigned char s) {
+static void FF(mr_unsign32 *pa, mr_unsign32 b, mr_unsign32 *pc, mr_unsign32 d, mr_unsign32 e, mr_unsign32 x, unsigned char s) {
   *pa += F(b, *pc, d) + x;
-  *pa = ROL(*pa, s) + e;
-  *pc = ROL(*pc, 10);
+  *pa = ROLc(*pa, s) + e;
+  *pc = ROLc(*pc, 10);
 }
 
 #ifndef TI8X
 inline
 #endif
-static void GG(dword *pa, dword b, dword *pc, dword d, dword e, dword x, unsigned char s) {
+static void GG(mr_unsign32 *pa, mr_unsign32 b, mr_unsign32 *pc, mr_unsign32 d, mr_unsign32 e, mr_unsign32 x, unsigned char s) {
 	*pa += G(b, *pc, d) + x + 0x5a827999UL;
-	*pa = ROL(*pa, s) + e;
-	*pc = ROL(*pc, 10);
+	*pa = ROLc(*pa, s) + e;
+	*pc = ROLc(*pc, 10);
 }
 
 #ifndef TI8X
 inline
 #endif
-static void HH(dword *pa, dword b, dword *pc, dword d, dword e, dword x, unsigned char s) {
+static void HH(mr_unsign32 *pa, mr_unsign32 b, mr_unsign32 *pc, mr_unsign32 d, mr_unsign32 e, mr_unsign32 x, unsigned char s) {
 	*pa += H(b, *pc, d) + x + 0x6ed9eba1UL;
-	*pa = ROL(*pa, s) + e;
-	*pc = ROL(*pc, 10);
+	*pa = ROLc(*pa, s) + e;
+	*pc = ROLc(*pc, 10);
 }
 
 #ifndef TI8X
 inline
 #endif
-static void II(dword *pa, dword b, dword *pc, dword d, dword e, dword x, unsigned char s) {
+static void II(mr_unsign32 *pa, mr_unsign32 b, mr_unsign32 *pc, mr_unsign32 d, mr_unsign32 e, mr_unsign32 x, unsigned char s) {
 	*pa += I(b, *pc, d) + x + 0x8f1bbcdcUL;
-	*pa = ROL(*pa, s) + e;
-	*pc = ROL(*pc, 10);
+	*pa = ROLc(*pa, s) + e;
+	*pc = ROLc(*pc, 10);
 }
 
 #ifndef TI8X
 inline
 #endif
-static void JJ(dword *pa, dword b, dword *pc, dword d, dword e, dword x, unsigned char s) {
+static void JJ(mr_unsign32 *pa, mr_unsign32 b, mr_unsign32 *pc, mr_unsign32 d, mr_unsign32 e, mr_unsign32 x, unsigned char s) {
 	*pa += J(b, *pc, d) + x + 0xa953fd4eUL;
-	*pa = ROL(*pa, s) + e;
-	*pc = ROL(*pc, 10);
+	*pa = ROLc(*pa, s) + e;
+	*pc = ROLc(*pc, 10);
 }
 
 #ifndef TI8X
 inline
 #endif
-static void FFF(dword *pa, dword b, dword *pc, dword d, dword e, dword x, unsigned char s) {
+static void FFF(mr_unsign32 *pa, mr_unsign32 b, mr_unsign32 *pc, mr_unsign32 d, mr_unsign32 e, mr_unsign32 x, unsigned char s) {
 	*pa += F(b, *pc, d) + x;
-	*pa = ROL(*pa, s) + e;
-	*pc = ROL(*pc, 10);
+	*pa = ROLc(*pa, s) + e;
+	*pc = ROLc(*pc, 10);
 }
 
 #ifndef TI8X
 inline
 #endif
-static void GGG(dword *pa, dword b, dword *pc, dword d, dword e, dword x, unsigned char s) {
+static void GGG(mr_unsign32 *pa, mr_unsign32 b, mr_unsign32 *pc, mr_unsign32 d, mr_unsign32 e, mr_unsign32 x, unsigned char s) {
 	*pa += G(b, *pc, d) + x + 0x7a6d76e9UL;
-	*pa = ROL(*pa, s) + e;
-	*pc = ROL(*pc, 10);
+	*pa = ROLc(*pa, s) + e;
+	*pc = ROLc(*pc, 10);
 }
 
 #ifndef TI8X
 inline
 #endif
-static void HHH(dword *pa, dword b, dword *pc, dword d, dword e, dword x, unsigned char s) {
+static void HHH(mr_unsign32 *pa, mr_unsign32 b, mr_unsign32 *pc, mr_unsign32 d, mr_unsign32 e, mr_unsign32 x, unsigned char s) {
 	*pa += H(b, *pc, d) + x + 0x6d703ef3UL;
-	*pa = ROL(*pa, s) + e;
-	*pc = ROL(*pc, 10);
+	*pa = ROLc(*pa, s) + e;
+	*pc = ROLc(*pc, 10);
 }
 
 #ifndef TI8X
 inline
 #endif
-static void III(dword *pa, dword b, dword *pc, dword d, dword e, dword x, unsigned char s) {
+static void III(mr_unsign32 *pa, mr_unsign32 b, mr_unsign32 *pc, mr_unsign32 d, mr_unsign32 e, mr_unsign32 x, unsigned char s) {
 	*pa += I(b, *pc, d) + x + 0x5c4dd124UL;
-	*pa = ROL(*pa, s) + e;
-	*pc = ROL(*pc, 10);
+	*pa = ROLc(*pa, s) + e;
+	*pc = ROLc(*pc, 10);
 }
 
 #ifndef TI8X
 inline
 #endif
-static void JJJ(dword *pa, dword b, dword *pc, dword d, dword e, dword x, unsigned char s) {
+static void JJJ(mr_unsign32 *pa, mr_unsign32 b, mr_unsign32 *pc, mr_unsign32 d, mr_unsign32 e, mr_unsign32 x, unsigned char s) {
 	*pa += J(b, *pc, d) + x + 0x50a28be6UL;
-	*pa = ROL(*pa, s) + e;
-	*pc = ROL(*pc, 10);
+	*pa = ROLc(*pa, s) + e;
+	*pc = ROLc(*pc, 10);
 }
 
 
-/********************************************************************/
+void rmd160_compress(hash_state *md, unsigned char *buf) {
+   mr_unsign32 aa,bb,cc,dd,ee,aaa,bbb,ccc,ddd,eee,X[16];
+   int i;
 
-void MDinit(dword *MDbuf)
-{
-   MDbuf[0] = 0x67452301UL;
-   MDbuf[1] = 0xefcdab89UL;
-   MDbuf[2] = 0x98badcfeUL;
-   MDbuf[3] = 0x10325476UL;
-   MDbuf[4] = 0xc3d2e1f0UL;
+   /* load words X */
+   for (i = 0; i < 16; i++) {
+      X[i] = ((mr_unsign32*)buf)[i];
+   }
 
-   return;
-}
-
-/********************************************************************/
-
-void compress(dword *MDbuf, dword *X)
-{
-   dword aa = MDbuf[0],  bb = MDbuf[1],  cc = MDbuf[2],
-         dd = MDbuf[3],  ee = MDbuf[4];
-   dword aaa = MDbuf[0], bbb = MDbuf[1], ccc = MDbuf[2],
-         ddd = MDbuf[3], eee = MDbuf[4];
+   /* load state */
+   aa = aaa = md->rmd160.out[0];
+   bb = bbb = md->rmd160.out[1];
+   cc = ccc = md->rmd160.out[2];
+   dd = ddd = md->rmd160.out[3];
+   ee = eee = md->rmd160.out[4];
 
    /* round 1 */
    FF(&aa, bb, &cc, dd, ee, X[ 0], 11);
@@ -339,47 +324,61 @@ void compress(dword *MDbuf, dword *X)
    FFF(&bbb, ccc, &ddd, eee, aaa, X[11] , 11);
 
    /* combine results */
-   ddd += cc + MDbuf[1];               /* final result for MDbuf[0] */
-   MDbuf[1] = MDbuf[2] + dd + eee;
-   MDbuf[2] = MDbuf[3] + ee + aaa;
-   MDbuf[3] = MDbuf[4] + aa + bbb;
-   MDbuf[4] = MDbuf[0] + bb + ccc;
-   MDbuf[0] = ddd;
-
-   return;
+   ddd += cc + md->rmd160.out[1];               /* final result for md->rmd160.out[0] */
+   md->rmd160.out[1] = md->rmd160.out[2] + dd + eee;
+   md->rmd160.out[2] = md->rmd160.out[3] + ee + aaa;
+   md->rmd160.out[3] = md->rmd160.out[4] + aa + bbb;
+   md->rmd160.out[4] = md->rmd160.out[0] + bb + ccc;
+   md->rmd160.out[0] = ddd;
 }
 
-/********************************************************************/
-
-void MDfinish(dword *MDbuf, byte *strptr, dword lswlen, dword mswlen)
-{
-   unsigned int i;                                 /* counter       */
-   dword        X[16];                             /* message words */
-
-   memset(X, 0, 16*sizeof(dword));
-
-   /* put bytes from strptr into X */
-   for (i=0; i<(lswlen&63); i++) {
-      /* byte i goes into word X[i div 4] at pos.  8*(i mod 4)  */
-      X[i>>2] ^= (dword) *strptr++ << (8 * (i&3));
-   }
-
-   /* append the bit m_n == 1 */
-   X[(lswlen>>2)&15] ^= (dword)1 << (8*(lswlen&3) + 7);
-
-   if ((lswlen & 63) > 55) {
-      /* length goes to next block */
-      compress(MDbuf, X);
-      memset(X, 0, 16*sizeof(dword));
-   }
-
-   /* append length in bits*/
-   X[14] = lswlen << 3;
-   X[15] = (lswlen >> 29) | (mswlen << 3);
-   compress(MDbuf, X);
-
-   return;
+/**
+   Initialize the hash state
+   @param md   The hash state you wish to initialize
+*/
+void rmd160_init(hash_state * md) {
+   md->rmd160.out[0] = 0x67452301UL;
+   md->rmd160.out[1] = 0xefcdab89UL;
+   md->rmd160.out[2] = 0x98badcfeUL;
+   md->rmd160.out[3] = 0x10325476UL;
+   md->rmd160.out[4] = 0xc3d2e1f0UL;
+   md->rmd160.curlen   = 0;
+   md->rmd160.length   = 0;
 }
 
-/************************ end of file rmd160.c **********************/
+/**
+   Terminate the hash to get the digest
+   @param md  The hash state
+*/
+void rmd160_done(hash_state * md) {
+    /* increase the length of the message */
+    md->rmd160.length += md->rmd160.curlen;
 
+    /* append the '1' bit */
+    md->rmd160.buf.buf8[md->rmd160.curlen++] = (unsigned char)0x80;
+
+	// XXX removing for our simplified purposes
+#if 0
+    /* if the length is currently above 56 bytes we append zeros
+     * then compress.  Then we can fall back to padding zeros and length
+     * encoding like normal.
+     */
+    if (md->rmd160.curlen > 56) {
+        while (md->rmd160.curlen < 64) {
+            md->rmd160.buf.buf8[md->rmd160.curlen++] = (unsigned char)0;
+        }
+        rmd160_compress(md, md->rmd160.buf.buf8);
+        md->rmd160.curlen = 0;
+    }
+#endif
+
+    /* pad upto 56 bytes of zeroes */
+    while (md->rmd160.curlen < 56) {
+        md->rmd160.buf.buf8[md->rmd160.curlen++] = (unsigned char)0;
+    }
+
+    /* store length */
+	md->rmd160.buf.buf32[14] = md->rmd160.length * 8;
+	md->rmd160.buf.buf32[15] = 0;
+    rmd160_compress(md, md->rmd160.buf.buf8);
+}
