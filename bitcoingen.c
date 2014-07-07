@@ -177,8 +177,18 @@ void otbitcoinaddress(miracl *mip, char compflag, big x) {
 
 	// ripemd160
 	rmd160_init(&rmds);
-	rmds.rmd160.curlen = 32; // size of sha256 hash
-	rmd160_done(&rmds);
+	// from the finalization function originally
+	i = 32; // size of sha256 hash
+	/* append the '1' bit */
+	rmds.rmd160.buf.buf8[i++] = (unsigned char)0x80;
+	/* pad upto 56 bytes of zeroes */
+	while (i < 56) {
+		rmds.rmd160.buf.buf8[i++] = (unsigned char)0;
+	}
+	/* store length */
+	rmds.rmd160.buf.buf32[14] = 32 * 8;
+	rmds.rmd160.buf.buf32[15] = 0;
+	rmd160_compress(&rmds, rmds.rmd160.buf.buf8);
 
 	// bignum
 	binnum = mirvar_mem(stalloc, 0);
