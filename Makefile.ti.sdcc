@@ -7,8 +7,8 @@ CC = sdcc -mz80 --std-c99 --reserve-regs-iy -DTI8X
 AS = sdasz80
 
 bitcoingen.8xp: bitcoingen.ihx
-	sdobjcopy -I ihex $< $@
-	python ./binpac8x.py -O T bitcoingen.bin $@
+	sdobjcopy -I ihex $< bitcoingen.bin
+	python ./binpac8x.py -O BITCOINGEN bitcoingen.bin $@
 
 bitcoingen.ihx: bitcoingen.rel rmd160.rel tios.rel tios_crt0.rel $(MROBJS)
 	$(CC) --verbose -V --no-std-crt0 --code-loc 0x9D9B --code-size 24000 --data-loc 0 bitcoingen.rel rmd160.rel tios.rel tios_crt0.rel $(MROBJS) -I $(MRBUILD) -o $@

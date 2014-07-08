@@ -11,3 +11,5 @@
 - The TI build produces a lot of compiler warnings that sound pretty scary (like the output may be completely broken), such as "Non-connected liverange found and extended to connected component of the CFG:iTemp141. Please contact sdcc authors with source code to reproduce."; "integer constant '0xb5c0fbcfL' out of range, truncated to 2147483647"; "right shifting more than size of object changed to zero". I have not looked closely or tested at all.
 
 - May need to manually trim MIRACL objects, if the SDCC linker isn't able to throw out unused functions.
+
+- I can probably use the IY register (instead of --reserve-regs-iy flag I'm currently using), if I save the IY value on entry, and restore before exit or bcalls.
