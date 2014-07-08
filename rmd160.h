@@ -1,3 +1,5 @@
+// © 2014 Joey Hewitt.  See COPYING.txt for terms.
+
 #ifndef RMD160_H
 #define RMD160_H
 

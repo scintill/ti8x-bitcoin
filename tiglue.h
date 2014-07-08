@@ -1,3 +1,5 @@
+// © 2014 Joey Hewitt.  See COPYING.txt for terms.
+
 #ifndef TIGLUE_H
 #define TIGLUE_H
 

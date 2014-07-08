@@ -1,3 +1,5 @@
+// © 2014 Joey Hewitt.  See COPYING.txt for terms.
+
 /* LibTomCrypt, modular cryptographic library -- Tom St Denis
  *
  * LibTomCrypt is a library that provides various cryptographic

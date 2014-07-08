@@ -1,3 +1,4 @@
+// © 2014 Joey Hewitt.  See COPYING.txt for terms.
 #include "tios.h"
 
 // http://www.cemetech.net/forum/viewtopic.php?t=7087

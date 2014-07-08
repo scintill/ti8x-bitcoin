@@ -1,3 +1,5 @@
+// © 2014 Joey Hewitt.  See COPYING.txt for terms.
+
 #include <stdlib.h>
 #include <string.h>
 

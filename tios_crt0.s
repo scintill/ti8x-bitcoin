@@ -1,4 +1,7 @@
+; © 2014 Joey Hewitt.  See COPYING.txt for terms.
+
 ; tios_crt0.s - TIOS assembly program header 
+; http://www.cemetech.net/forum/viewtopic.php?t=7087 may be helpful
    .module crt 
    .globl _main 
    .area _HEADER (ABS) 
