@@ -1,4 +1,4 @@
-MRBUILD = MIRACL/build.ti.sdcc
+MRBUILD = .MIRACL-build.ti.sdcc
 MROBJS = $(MRBUILD)/mrcore.rel $(MRBUILD)/mrarth0.rel $(MRBUILD)/mrarth1.rel $(MRBUILD)/mrarth2.rel $(MRBUILD)/mrarth3.rel $(MRBUILD)/mrbits.rel $(MRBUILD)/mrcurve.rel $(MRBUILD)/mrmonty.rel $(MRBUILD)/mrshs256.rel $(MRBUILD)/mrjack.rel $(MRBUILD)/mrxgcd.rel $(MRBUILD)/mrsroot.rel $(MRBUILD)/mrio1.rel $(MRBUILD)/mrio2.rel $(MRBUILD)/mrlucas.rel
 CC = sdcc -mz80 --std-c99 --reserve-regs-iy -DTI8X
 #TODO optimization flags?

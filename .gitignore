@@ -23,3 +23,6 @@ tios_crt0.rel
 tios.lst
 tios.rel
 tios.sym
+
+.MIRACL-build.linux64/
+.MIRACL-build.ti.sdcc/
