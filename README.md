@@ -1,6 +1,10 @@
 # ti8x-bitcoin
 
-The goal of this project is to get TI-8x calculators doing basic [Bitcoin](https://github.com/bitcoin/bitcoin) operations.  Or probably just generating address keypairs before I lose interest (if I even get that far.)
+The goal of this project was to get TI-8x calculators doing basic [Bitcoin](https://github.com/bitcoin/bitcoin) operations.  Or probably just generating address keypairs before I lose interest (if I even get that far.)
+
+## Abandonment
+
+I'm calling this semi-abandoned, because I may come back to it, but it's unlikely.  Somebody else has now released a finished keypair generator ([video](https://vimeo.com/123798651), [source](http://www.mattwhitlock.com/diceware/diceware.c)).  I suspect it will take a lot of work to even slim mine down enough, and there is an auditability/proveability advantage in that code for being so tight and self-contained.
 
 ## Why?
 
